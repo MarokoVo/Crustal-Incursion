@@ -37,6 +37,23 @@ public class MediumSequoiaTrunkPlacer extends TrunkPlacer {
 
     @Override
     public List<FoliagePlacer.FoliageAttachment> placeTrunk(LevelSimulatedReader level, BiConsumer<BlockPos, BlockState> blockSetter, RandomSource random, int height, BlockPos pos, TreeConfiguration config) {
+
+        // === 0. РАДАР СВОБОДНОГО МЕСТА ===
+        int radarRadius = 7;
+        for (int x = -radarRadius; x <= radarRadius; x++) {
+            for (int z = -radarRadius; z <= radarRadius; z++) {
+                for (int y = 0; y <= 6; y += 2) {
+                    if (level.isStateAtPosition(pos.offset(x, y, z), state ->
+                            state.is(ModBlocks.SEQUOIA_BARK.get()) ||
+                                    state.is(ModBlocks.SEQUOIA_BARK_MOSSY.get()) ||
+                                    state.is(ModBlocks.SEQUOIA_BARK_DARK.get()) ||
+                                    state.is(ModBlocks.SEQUOIA_BARK_LIGHT.get()))) {
+                        return new ArrayList<>(); // Отмена генерации!
+                    }
+                }
+            }
+        }
+
         setDirtAt(level, blockSetter, random, pos.below(), config);
         setDirtAt(level, blockSetter, random, pos.below().east(), config);
         setDirtAt(level, blockSetter, random, pos.below().south(), config);
@@ -51,7 +68,6 @@ public class MediumSequoiaTrunkPlacer extends TrunkPlacer {
             for (int x = 0; x <= 1; x++) {
                 for (int z = 0; z <= 1; z++) {
                     BlockPos trunkPos = pos.offset(x, y, z);
-
                     if (random.nextFloat() < mossChance) {
                         blockSetter.accept(trunkPos, ModBlocks.SEQUOIA_BARK_MOSSY.get().defaultBlockState());
                     } else {
@@ -74,53 +90,55 @@ public class MediumSequoiaTrunkPlacer extends TrunkPlacer {
             float progress = (float) (y - branchStart) / (height - branchStart);
             int branchLength = Math.round(5 - (4 * progress));
 
-            // Строим 4 основные ветки мельницы
-            buildBranch(level, blockSetter, random, config, pos.offset(0, y, 0), Direction.NORTH, branchLength, foliage);
-            buildBranch(level, blockSetter, random, config, pos.offset(1, y, 0), Direction.EAST, branchLength, foliage);
-            buildBranch(level, blockSetter, random, config, pos.offset(1, y, 1), Direction.SOUTH, branchLength, foliage);
-            buildBranch(level, blockSetter, random, config, pos.offset(0, y, 1), Direction.WEST, branchLength, foliage);
+            // Проверяем, самый ли это нижний ярус веток
+            boolean isLowestTier = (y == branchStart);
 
-            // === 3. ДИАГОНАЛЬНЫЕ ВЕТОЧКИ ДЛЯ ЗАПОЛНЕНИЯ УГЛОВ ===
-            // Ставим их на блок выше (где у тебя был редстоун)
+            // Строим 4 основные ветки (передаем флаг isLowestTier)
+            buildBranch(level, blockSetter, random, config, pos.offset(0, y, 0), Direction.NORTH, branchLength, foliage, isLowestTier);
+            buildBranch(level, blockSetter, random, config, pos.offset(1, y, 0), Direction.EAST, branchLength, foliage, isLowestTier);
+            buildBranch(level, blockSetter, random, config, pos.offset(1, y, 1), Direction.SOUTH, branchLength, foliage, isLowestTier);
+            buildBranch(level, blockSetter, random, config, pos.offset(0, y, 1), Direction.WEST, branchLength, foliage, isLowestTier);
+
+            // 3. ДИАГОНАЛЬНЫЕ ВЕТОЧКИ ДЛЯ ЗАПОЛНЕНИЯ УГЛОВ
             BlockPos gapFillerPos = pos.above(y + 1);
-
-            // Длина диагонали будет чуть короче основной ветки
             int diagLength = Math.max(1, branchLength - 2);
 
-            // Направляем веточки ровно в те углы, где был редстоун:
-            // Северо-Восток (идет по осям +X, -Z)
             buildDiagonalBranch(level, blockSetter, random, config, gapFillerPos.offset(1, 0, -1), 1, -1, diagLength, foliage);
-            // Юго-Восток (идет по осям +X, +Z)
             buildDiagonalBranch(level, blockSetter, random, config, gapFillerPos.offset(2, 0, 1), 1, 1, diagLength, foliage);
-            // Юго-Запад (идет по осям -X, +Z)
             buildDiagonalBranch(level, blockSetter, random, config, gapFillerPos.offset(0, 0, 2), -1, 1, diagLength, foliage);
-            // Северо-Запад (идет по осям -X, -Z)
             buildDiagonalBranch(level, blockSetter, random, config, gapFillerPos.offset(-1, 0, 0), -1, -1, diagLength, foliage);
         }
 
         return foliage;
     }
 
-    private void buildBranch(LevelSimulatedReader level, BiConsumer<BlockPos, BlockState> blockSetter, RandomSource random, TreeConfiguration config, BlockPos startPos, Direction dir, int length, List<FoliagePlacer.FoliageAttachment> foliage) {
+    private void buildBranch(LevelSimulatedReader level, BiConsumer<BlockPos, BlockState> blockSetter, RandomSource random, TreeConfiguration config, BlockPos startPos, Direction dir, int length, List<FoliagePlacer.FoliageAttachment> foliage, boolean isLowestTier) {
         BlockPos current = startPos;
         for (int i = 1; i <= length; i++) {
             current = current.relative(dir);
             placeLog(level, blockSetter, random, current, config);
             foliage.add(new FoliagePlacer.FoliageAttachment(current.above(), 0, false));
         }
+
+        // === МАГИЯ ЮБКИ (ДЛЯ НИЖНИХ ВЕТОК) ===
+        if (isLowestTier) {
+            // 1. Ставим огромную шапку прямо ПОД концом нижней ветки
+            foliage.add(new FoliagePlacer.FoliageAttachment(current.below(), 0, false));
+
+            // 2. Делаем провисающий кончик (ветка идет на 1 блок в сторону и вниз)
+            BlockPos droopPos = current.relative(dir).below();
+            placeLog(level, blockSetter, random, droopPos, config);
+
+            // 3. Вешаем на этот провисающий кончик еще одну шапку
+            foliage.add(new FoliagePlacer.FoliageAttachment(droopPos.above(), 0, false));
+        }
     }
 
-    // НОВЫЙ МЕТОД: Строит диагональную ветку и вешает на нее шапки листвы
     private void buildDiagonalBranch(LevelSimulatedReader level, BiConsumer<BlockPos, BlockState> blockSetter, RandomSource random, TreeConfiguration config, BlockPos startPos, int dx, int dz, int length, List<FoliagePlacer.FoliageAttachment> foliage) {
         BlockPos current = startPos;
         for (int i = 0; i < length; i++) {
-            // Ставим физический блок ствола в углу (и дальше по диагонали)
             placeLog(level, blockSetter, random, current, config);
-
-            // Вешаем нашу стандартную 5-блочную шапку листвы ПРЯМО НА НЕГО
             foliage.add(new FoliagePlacer.FoliageAttachment(current.above(), 0, false));
-
-            // Сдвигаемся по диагонали
             current = current.offset(dx, 0, dz);
         }
     }

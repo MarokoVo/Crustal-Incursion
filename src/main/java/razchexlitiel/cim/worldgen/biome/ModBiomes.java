@@ -53,7 +53,8 @@ public class ModBiomes {
         // 5.1 Сначала ВСЕГДА идут деревья
 
         // 5.1 Сначала ВСЕГДА идут деревья (Строго от ГИГАНТОВ к малышам!)
-        biomeBuilder.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, ModPlacedFeatures.GIANT_SEQUOIA_PLACED_KEY);
+        biomeBuilder.addFeature(GenerationStep.Decoration.SURFACE_STRUCTURES, ModPlacedFeatures.GIANT_SEQUOIA_PLACED_KEY);
+
         biomeBuilder.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, ModPlacedFeatures.MEDIUM_SEQUOIA_PLACED_KEY);
         biomeBuilder.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, ModPlacedFeatures.SMALL_SEQUOIA_PLACED_KEY);
 
