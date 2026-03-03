@@ -1,5 +1,4 @@
 {
-  "credit": "Made with Blockbench",
   "parent": "builtin/entity",
   "texture_size": [128, 128],
   "display": {
@@ -13,9 +12,8 @@
       "scale": [0.25, 0.25, 0.25]
     },
     "firstperson_righthand": {
-      "rotation": [22.5, 90, 0],
       "translation": [-1.25, 2, 1.25],
-      "scale": [0.5, 0.5, 0.5]
+      "scale": [0.25, 0.25, 0.25]
     },
     "firstperson_lefthand": {
       "translation": [-1, 2.5, 1.75],
@@ -25,9 +23,9 @@
       "scale": [0.25, 0.25, 0.25]
     },
     "gui": {
-      "rotation": [0, 0, 0],
+      "rotation": [22.5, 135, 0],
       "translation": [0, -2.5, 0],
-      "scale": [0.75, 0.75, 0.75]
+      "scale": [0.55, 0.55, 0.55]
     },
     "head": {
       "translation": [0, 6.25, 0]
@@ -37,6 +35,6 @@
     }
   },
   "textures": {
-    "particle": "cim:item/energy_cell_basic"
+    "particle": "cim:block/machine_battery"
   }
 }

@@ -204,7 +204,7 @@ public class ModBlocks {
                     .strength(5.0f, 4.0f).requiresCorrectToolForDrops()));
 
 
-    //СИКВОЯ
+    //СЕКВОЯ
     public static final RegistryObject<Block> SEQUOIA_BARK = registerBlock("sequoia_bark",
             () -> new Block(BlockBehaviour.Properties.copy(Blocks.OAK_PLANKS)));
     public static final RegistryObject<Block> SEQUOIA_HEARTWOOD = registerBlock("sequoia_heartwood",
@@ -260,7 +260,7 @@ public class ModBlocks {
                 () -> new MachineBatteryBlock(Block.Properties.of().strength(5.0f).requiresCorrectToolForDrops().noOcclusion()));
 
         ModItems.ITEMS.register(name,
-                () -> new BlockItem(batteryBlock.get(), new Item.Properties()));
+                () -> new MachineBatteryBlockItem(batteryBlock.get(), new Item.Properties()));
 
         BATTERY_BLOCKS.add(batteryBlock);
         return batteryBlock;

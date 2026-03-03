@@ -1,54 +1,42 @@
 package com.cim.item.energy;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import org.jetbrains.annotations.Nullable;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+import com.cim.client.gecko.item.energy.MachineBatteryItemRenderer;
+import software.bernie.geckolib.animatable.GeoItem;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
-import java.util.List;
+import java.util.function.Consumer;
 
-public class MachineBatteryBlockItem extends BlockItem {
+public class MachineBatteryBlockItem extends BlockItem implements GeoItem {
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
-    private final long maxPower; // Меняем int на long
-
-    public MachineBatteryBlockItem(Block pBlock, Properties pProperties, long maxPower) {
-        super(pBlock, pProperties);
-        this.maxPower = maxPower;
+    public MachineBatteryBlockItem(Block block, Properties properties) {
+        super(block, properties);
     }
 
     @Override
-    public void appendHoverText(ItemStack pStack, @Nullable Level pLevel, List<Component> pTooltip, TooltipFlag pFlag) {
-        // Используем long для вычислений
-        // Если у тебя есть утилита EnergyFormatter.format(long), лучше использовать её для красивых чисел (1M, 1G и т.д.)
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {}
 
-        pTooltip.add(Component.translatable("tooltip.cim.machine_battery.capacity", maxPower).withStyle(ChatFormatting.GOLD));
-        pTooltip.add(Component.translatable("tooltip.cim.machine_battery.charge_speed", maxPower / 200).withStyle(ChatFormatting.GOLD));
-        pTooltip.add(Component.translatable("tooltip.cim.machine_battery.discharge_speed", maxPower / 600).withStyle(ChatFormatting.GOLD));
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
+    }
 
-        // Читаем энергию из NBT
-        if (pStack.hasTag()) {
-            CompoundTag blockEntityTag = pStack.getTagElement("BlockEntityTag");
-            // Важно: в MachineBatteryBlockEntity мы сохраняем как "Energy" (с большой буквы), проверь это!
-            // В старом коде было "Energy", здесь "energy". Лучше проверять оба варианта или привести к одному.
-            if (blockEntityTag != null) {
-                long energy = 0;
-                if (blockEntityTag.contains("Energy")) {
-                    energy = blockEntityTag.getLong("Energy");
-                } else if (blockEntityTag.contains("energy")) {
-                    energy = blockEntityTag.getInt("energy"); // Поддержка старых сохранений
-                }
+    @Override
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(new IClientItemExtensions() {
+            private MachineBatteryItemRenderer renderer;
 
-                if (energy > 0) {
-                    pTooltip.add(Component.translatable("tooltip.cim.machine_battery.stored", energy, maxPower).withStyle(ChatFormatting.YELLOW));
-                }
+            @Override
+            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                if (renderer == null) renderer = new MachineBatteryItemRenderer();
+                return renderer;
             }
-        }
-
-        super.appendHoverText(pStack, pLevel, pTooltip, pFlag);
+        });
     }
 }

@@ -8,14 +8,14 @@ import software.bernie.geckolib.model.GeoModel;
 public class MachineBatteryModel extends GeoModel<MachineBatteryBlockEntity> {
 
     // Путь к .geo.json — кладёшь в:
-    // src/main/resources/assets/cim/geo/module_energy_storage.geo.json
+    // src/main/resources/assets/cim/geo/machine_battery.geo.json
     private static final ResourceLocation MODEL =
-            new ResourceLocation(CrustalIncursionMod.MOD_ID, "geo/module_energy_storage.geo.json");
+            new ResourceLocation(CrustalIncursionMod.MOD_ID, "geo/machine_battery.geo.json");
 
     // Путь к текстуре — кладёшь в:
-    // src/main/resources/assets/cim/textures/block/module_energy_storage.png
+    // src/main/resources/assets/cim/textures/block/machine_battery.png
     private static final ResourceLocation TEXTURE =
-            new ResourceLocation(CrustalIncursionMod.MOD_ID, "textures/block/module_energy_storage.png");
+            new ResourceLocation(CrustalIncursionMod.MOD_ID, "textures/block/machine_battery.png");
 
     @Override
     public ResourceLocation getModelResource(MachineBatteryBlockEntity animatable) {

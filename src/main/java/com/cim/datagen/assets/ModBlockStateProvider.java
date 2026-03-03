@@ -81,13 +81,6 @@ public class ModBlockStateProvider extends BlockStateProvider {
         );
 
 
-        orientableBlockWithItem(
-                ModBlocks.MACHINE_BATTERY,
-                modLoc("block/battery_side_alt"),
-                modLoc("block/battery_front_alt"),
-                modLoc("block/battery_top")
-        );
-
 
         //ПОВОРОТ ДЛЯ 3Д МОДЕЛИ, ПРИМЕР:
         // customModelBlockWithItem(ModBlocks.TURRET_BASE);
