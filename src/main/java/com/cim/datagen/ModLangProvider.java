@@ -42,6 +42,17 @@ public class ModLangProvider extends LanguageProvider {
         add(ModBlocks.DET_MINER.get(), "Шахтёрский заряд");
         add(ModItems.RANGE_DETONATOR.get(), "Детонатор дальнего действия");
 
+
+        add(ModBlocks.SEQUOIA_BARK.get(), "Кора секвои");
+        add(ModBlocks.SEQUOIA_BARK_DARK.get(), "Кора секвои");
+        add(ModBlocks.SEQUOIA_BARK_MOSSY.get(), "Замшелая кора секвои");
+        add(ModBlocks.SEQUOIA_BARK_LIGHT.get(), "Кора секвои");
+        add(ModBlocks.SEQUOIA_HEARTWOOD.get(), "Древесина секвои");
+        add(ModBlocks.SEQUOIA_DOOR.get(), "Дверь из секвои");
+        add(ModBlocks.SEQUOIA_BIOME_MOSS.get(), "Тёмный мох");
+        add(ModBlocks.SEQUOIA_LEAVES.get(), "Листва секвои");
+        
+
         // Вкладка креатива
         add("creativetab.snm_weapons_tab", "Substractum: Арсенал");
 

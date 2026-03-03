@@ -138,6 +138,7 @@ public class CrustalIncursionMod {
             // Другие строительные блоки
             event.accept(ModBlocks.CRATE.get());
             event.accept(ModBlocks.CRATE_AMMO.get());
+            event.accept(ModBlocks.SEQUOIA_DOOR);
         }
 
 
