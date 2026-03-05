@@ -35,6 +35,7 @@ public class MiningPortMenu extends AbstractContainerMenu {
                 this.addSlot(new SlotItemHandler(handler, col + row * 3, 62 + col * 18, 29 + row * 18));
             }
         }
+
     }
 
     public BlockPos getPos() { return blockEntity.getBlockPos(); }
