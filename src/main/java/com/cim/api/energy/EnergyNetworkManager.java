@@ -9,6 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.saveddata.SavedData;
 import org.slf4j.Logger;
 
@@ -30,9 +31,6 @@ public class EnergyNetworkManager extends SavedData {
 
             for (long posLong : nodePositions) {
                 BlockPos pos = BlockPos.of(posLong);
-
-                // [🔥 ФИКС] Просто добавляем. БЕЗ isValid().
-                // Мы "разгребём" мусор в rebuildAllNetworks(), когда мир будет готов.
                 allNodes.put(pos.asLong(), new EnergyNode(pos));
             }
         }
@@ -51,11 +49,9 @@ public class EnergyNetworkManager extends SavedData {
     }
 
     /**
-     * ✅ НОВЫЙ МЕТОД: Полностью перестраивает все сети.
+     * Полностью перестраивает все сети.
      * Вызывается при загрузке мира, чтобы исправить любые сломанные состояния.
      */
-
-
     public void rebuildAllNetworks() {
         LOGGER.info("[NETWORK] Starting full network rebuild for dimension {}...", level.dimension().location());
 
@@ -65,27 +61,21 @@ public class EnergyNetworkManager extends SavedData {
             node.setNetwork(null);
         }
 
-        // [🔥 НОВЫЙ ШАГ ОЧИСТКИ]
-        // Теперь, когда мир ТОЧНО загружен, чистим 'allNodes'
-        // от всего мусора (невалидных узлов), который загрузил конструктор.
+        // 2. Чистим allNodes от невалидных узлов
         int totalNodes = allNodes.size();
         allNodes.values().removeIf(node -> !node.isValid(level));
         int validNodes = allNodes.size();
         LOGGER.info("[NETWORK] Pruned node list: {} total -> {} valid.", totalNodes, validNodes);
 
-
-        // 2. Используем Set для отслеживания *уже* обработанных узлов
+        // 3. Используем Set для отслеживания уже обработанных узлов
         Set<EnergyNode> processedNodes = new HashSet<>();
 
-        // 3. Проходим по *очищенному* allNodes
+        // 4. Проходим по очищенному allNodes
         for (EnergyNode startNode : allNodes.values()) {
 
             if (processedNodes.contains(startNode)) {
                 continue;
             }
-
-            // [🔥 ФИКС] Нам больше не нужен startNode.isValid()
-            // потому что мы уже очистили 'allNodes'.
 
             EnergyNetwork newNetwork = new EnergyNetwork(this);
             networks.add(newNetwork);
@@ -96,17 +86,14 @@ public class EnergyNetworkManager extends SavedData {
 
             while (!queue.isEmpty()) {
                 EnergyNode currentNode = queue.poll();
-                newNetwork.addNode(currentNode); // Добавляем в новую сеть
+                newNetwork.addNode(currentNode);
 
-                // Ищем соседей
                 for (Direction dir : Direction.values()) {
                     EnergyNode neighbor = allNodes.get(currentNode.getPos().relative(dir).asLong());
 
-                    // [🔥 ФИКС] Нам больше не нужен neighbor.isValid()
-                    // потому что 'allNodes' уже чист.
                     if (neighbor != null && !processedNodes.contains(neighbor)) {
-                        processedNodes.add(neighbor); // Помечаем
-                        queue.add(neighbor); // Добавляем в очередь на поиск
+                        processedNodes.add(neighbor);
+                        queue.add(neighbor);
                     }
                 }
             }
@@ -116,17 +103,36 @@ public class EnergyNetworkManager extends SavedData {
         setDirty();
     }
 
-
     public void tick() {
-        // Копируем, чтобы избежать ConcurrentModificationException
         new HashSet<>(networks).forEach(network -> network.tick(level));
     }
+
+    // ==================== ДОБАВЛЕНИЕ УЗЛОВ (БЕЗ РЕКУРСИИ) ====================
 
     public void addNode(BlockPos pos) {
         addNode(pos, null);
     }
 
+    /**
+     * Обёртка: создаёт очередь и запускает итеративную обработку.
+     * Это заменяет рекурсивный вызов addNode → addNode → addNode...
+     */
     private void addNode(BlockPos pos, @Nullable EnergyNetwork networkToAvoid) {
+        Queue<AddNodeRequest> pendingNodes = new LinkedList<>();
+        pendingNodes.add(new AddNodeRequest(pos, networkToAvoid));
+
+        while (!pendingNodes.isEmpty()) {
+            AddNodeRequest request = pendingNodes.poll();
+            addNodeInternal(request.pos, request.networkToAvoid, pendingNodes);
+        }
+    }
+
+    /**
+     * Внутренний метод добавления одного узла.
+     * Найденных "потерянных" соседей складывает в pendingNodes вместо рекурсии.
+     */
+    private void addNodeInternal(BlockPos pos, @Nullable EnergyNetwork networkToAvoid,
+                                 Queue<AddNodeRequest> pendingNodes) {
         long posLong = pos.asLong();
 
         // 1. Защита от дубликатов и проверка существования
@@ -139,7 +145,6 @@ public class EnergyNetworkManager extends SavedData {
 
         // 2. Создаем и проверяем валидность
         EnergyNode newNode = new EnergyNode(pos);
-        // Если чанк загружен, но блока нет (или он не подходит), удаляем и выходим
         if (!newNode.isValid(level)) {
             allNodes.remove(posLong);
             return;
@@ -156,21 +161,18 @@ public class EnergyNetworkManager extends SavedData {
 
             EnergyNode neighbor = allNodes.get(neighborLong);
 
-            // [АВТО-ПОЧИНКА]
-            // Если в памяти менеджера соседа НЕТ, но чанк загружен...
+            // [АВТО-ПОЧИНКА] — итеративная, без рекурсии
             if (neighbor == null && level.isLoaded(neighborPos)) {
-                // Проверяем, есть ли там реальный TileEntity с энергией
-                net.minecraft.world.level.block.entity.BlockEntity be = level.getBlockEntity(neighborPos);
+                BlockEntity be = level.getBlockEntity(neighborPos);
                 if (be != null) {
                     boolean isEnergyBlock = be.getCapability(ModCapabilities.ENERGY_PROVIDER).isPresent() ||
                             be.getCapability(ModCapabilities.ENERGY_RECEIVER).isPresent() ||
                             be.getCapability(ModCapabilities.ENERGY_CONNECTOR).isPresent();
 
                     if (isEnergyBlock) {
-                        // Мы нашли "потерянный" провод! Добавляем его принудительно.
-                        // Это рекурсивно вызовет addNode для провода и починит сеть дальше.
-                        addNode(neighborPos);
-                        neighbor = allNodes.get(neighborLong); // Теперь он точно есть
+                        // Вместо рекурсивного addNode() — кладём в очередь
+                        pendingNodes.add(new AddNodeRequest(neighborPos, null));
+                        continue; // Сосед будет обработан на следующей итерации
                     }
                 }
             }
@@ -199,47 +201,50 @@ public class EnergyNetworkManager extends SavedData {
         setDirty();
     }
 
+    /**
+     * Контейнер для параметров отложенного добавления узла.
+     */
+    private record AddNodeRequest(BlockPos pos, @Nullable EnergyNetwork networkToAvoid) {}
+
+    // ==================== УДАЛЕНИЕ / ПЕРЕДОБАВЛЕНИЕ ====================
+
     public void removeNode(BlockPos pos) {
         long posLong = pos.asLong();
-        EnergyNode node = allNodes.remove(posLong); // <--- Удаляем из глобальной карты
+        EnergyNode node = allNodes.remove(posLong);
 
         if (node == null) {
-            // LOGGER.debug("[NETWORK] Node {} was not in the manager", pos);
             return;
         }
 
         EnergyNetwork network = node.getNetwork();
         if (network != null) {
-            network.removeNode(node); // <--- Говорим сети, что узел удален
+            network.removeNode(node);
         }
 
         setDirty();
     }
 
     void reAddNode(BlockPos pos, @Nullable EnergyNetwork networkToAvoid) {
-        // Мы не удаляем его из allNodes, он там все еще есть,
-        // но он потерял свою сеть.
         EnergyNode node = allNodes.get(pos.asLong());
         if (node != null) {
             node.setNetwork(null);
         }
 
-        // Удаляем и добавляем, чтобы сработала логика поиска соседей
         allNodes.remove(pos.asLong());
-
-        // [🔥 ИЗМЕНЕНО 🔥]
-        addNode(pos, networkToAvoid); // Передаем "запрещенную" сеть
+        addNode(pos, networkToAvoid);
     }
+
+    // ==================== СОХРАНЕНИЕ ====================
 
     @Override
     public CompoundTag save(CompoundTag nbt) {
-        // Сохраняем только позиции узлов
         long[] nodePositions = allNodes.keySet().toLongArray();
         nbt.putLongArray("nodes", nodePositions);
         return nbt;
     }
 
-    // Остальные методы (hasNode, getNode, addNetwork, removeNetwork) без изменений
+    // ==================== УТИЛИТЫ ====================
+
     public boolean hasNode(BlockPos pos) { return allNodes.containsKey(pos.asLong()); }
     public EnergyNode getNode(BlockPos pos) { return allNodes.get(pos.asLong()); }
     void addNetwork(EnergyNetwork network) { networks.add(network); }
