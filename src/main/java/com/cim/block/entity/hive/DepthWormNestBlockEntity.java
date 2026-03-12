@@ -38,10 +38,11 @@ public class DepthWormNestBlockEntity extends BlockEntity implements HiveNetwork
         return networkId;
     }
 
+    // В DepthWormNestBlockEntity должно быть:
     @Override
     public void setNetworkId(UUID id) {
         this.networkId = id;
-        setChanged();
+        this.setChanged(); // Важно!
     }
 
     public boolean isFull() {
@@ -186,12 +187,17 @@ public class DepthWormNestBlockEntity extends BlockEntity implements HiveNetwork
         int countBefore = this.storedWorms.size();
         if (countBefore == 0) return;
 
-        // НОВОЕ: Очищаем данные в сети ПЕРЕД выпуском
+        // Уведомляем сеть что червяки выходят (становятся активными)
         if (this.networkId != null) {
             HiveNetworkManager manager = HiveNetworkManager.get(this.level);
             if (manager != null) {
                 HiveNetwork network = manager.getNetwork(this.networkId);
                 if (network != null) {
+                    // Добавляем в активные, НЕ очищаем полностью
+                    for (int i = 0; i < countBefore; i++) {
+                        network.addActiveWorm(this.worldPosition);
+                    }
+                    // Очищаем stored данные - они теперь "на улице"
                     network.clearNestWormData(this.worldPosition);
                 }
             }
@@ -208,6 +214,10 @@ public class DepthWormNestBlockEntity extends BlockEntity implements HiveNetwork
                 wormTag.putLong("BoundNest", this.worldPosition.asLong());
             }
 
+            // Финальные переменные для лямбды
+            final BlockPos boundNestPos = this.worldPosition;
+            final UUID netId = this.networkId;
+
             Entity entity = EntityType.loadEntityRecursive(wormTag, level, (e) -> {
                 BlockPos actualSpawn = findSpawnPos(spawnPos);
                 e.moveTo(actualSpawn.getX() + 0.5, actualSpawn.getY(), actualSpawn.getZ() + 0.5,
@@ -216,7 +226,22 @@ public class DepthWormNestBlockEntity extends BlockEntity implements HiveNetwork
 
                 if (e instanceof DepthWormEntity worm) {
                     worm.setHomePos(actualSpawn);
-                    worm.bindToNest(this.worldPosition); // НОВОЕ: Привязываем к этому гнезду
+                    worm.bindToNest(boundNestPos);
+
+                    // Устанавливаем колбэк при смерти для уменьшения счётчика активных
+                    worm.setOnDeathCallback(() -> {
+                        if (netId != null) {
+                            HiveNetworkManager mgr = HiveNetworkManager.get(worm.level());
+                            if (mgr != null) {
+                                HiveNetwork net = mgr.getNetwork(netId);
+                                if (net != null) {
+                                    net.removeActiveWorm(boundNestPos);
+                                    System.out.println("[Hive] Active worm died at nest " + boundNestPos);
+                                }
+                            }
+                        }
+                    });
+
                     if (target != null) {
                         worm.setTarget(target);
                     }
@@ -234,13 +259,8 @@ public class DepthWormNestBlockEntity extends BlockEntity implements HiveNetwork
         this.storedWorms.clear();
         this.setChanged();
 
-        if (this.networkId != null) {
-            HiveNetworkManager manager = HiveNetworkManager.get(this.level);
-            if (manager != null) {
-                manager.updateWormCount(this.networkId, this.worldPosition, -countBefore);
-                System.out.println("[Hive] Nest at " + this.worldPosition + " emptied. Released: " + countBefore);
-            }
-        }
+        System.out.println("[Hive] Nest at " + this.worldPosition + " released " + countBefore +
+                " worms. They are now active.");
     }
 
     @Override
@@ -267,11 +287,13 @@ public class DepthWormNestBlockEntity extends BlockEntity implements HiveNetwork
     public void onLoad() {
         super.onLoad();
         if (this.level != null && !this.level.isClientSide) {
+            // НЕ создаём новый UUID если уже есть!
             if (this.networkId == null) {
-                this.networkId = UUID.randomUUID();
-                this.setChanged();
+                System.out.println("[Hive] Warning: Nest at " + this.worldPosition + " has no network ID on load!");
+                // this.networkId = UUID.randomUUID(); // НЕ делаем этого!
+            } else {
+                HiveNetworkManager.get(this.level).addNode(this.networkId, this.worldPosition, true);
             }
-            HiveNetworkManager.get(this.level).addNode(this.networkId, this.worldPosition, true);
         }
     }
 }

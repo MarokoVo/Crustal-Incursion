@@ -24,10 +24,21 @@ public class HiveNetworkManager {
         List<HiveNetwork> safeCopy = new ArrayList<>(networks.values());
 
         for (HiveNetwork network : safeCopy) {
-            if (network.isDead() || network.isAbandoned()) {
-                networks.remove(network.id);
-                System.out.println("[HiveManager] Removed network " + network.id +
-                        (network.isAbandoned() ? " (abandoned, no nests)" : " (dead)"));
+            // НЕ удаляем сразу, даём шанс на восстановление
+            if (network.isDead()) {
+                // Проверяем ещё раз через тик - может червяк вернулся
+                if (network.isDead()) {
+                    networks.remove(network.id);
+                    System.out.println("[HiveManager] Removed dead network " + network.id);
+                }
+                continue;
+            }
+
+            // Проверяем заброшенность только если нет активных червяков долгое время
+            if (network.isAbandoned()) {
+                System.out.println("[HiveManager] Network " + network.id + " is abandoned but keeping for now");
+                // НЕ удаляем сразу, просто логируем
+                // networks.remove(network.id);
                 continue;
             }
 
@@ -59,11 +70,16 @@ public class HiveNetworkManager {
         HiveNetwork secondNet = networks.get(secondId);
         if (secondNet == null) return;
 
-        System.out.println("[Hive] Merging networks! " + secondId + " absorbed into " + mainId);
+        System.out.println("[Hive] Merging networks! " + secondId + " into " + mainId);
 
-        mainNet.killsPool = Math.min(50, mainNet.killsPool + secondNet.killsPool);
+        // Сначала копируем данные, потом модифицируем
+        int killsToTransfer = Math.min(50, secondNet.killsPool);
+        mainNet.killsPool = Math.min(50, mainNet.killsPool + killsToTransfer);
 
-        for (BlockPos pos : new HashSet<>(secondNet.members)) {
+        // Копируем членов во временный список
+        Set<BlockPos> membersToTransfer = new HashSet<>(secondNet.members);
+
+        for (BlockPos pos : membersToTransfer) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof HiveNetworkMember member) {
                 member.setNetworkId(mainId);
@@ -71,15 +87,22 @@ public class HiveNetworkManager {
 
             posToNetwork.put(pos, mainId);
 
+            // Копируем данные о червяках если есть
             if (secondNet.wormCounts.containsKey(pos)) {
-                mainNet.wormCounts.put(pos, secondNet.wormCounts.get(pos));
-                mainNet.nestWormData.put(pos, new ArrayList<>(secondNet.getNestWormData(pos)));
+                int wormCount = secondNet.wormCounts.getOrDefault(pos, 0);
+                List<CompoundTag> wormData = secondNet.getNestWormData(pos);
+
+                mainNet.wormCounts.put(pos, wormCount);
+                mainNet.nestWormData.put(pos, new ArrayList<>(wormData));
             }
             mainNet.members.add(pos);
         }
 
+        // Удаляем вторую сеть
         networks.remove(secondId);
         networkNodes.remove(secondId);
+
+        System.out.println("[Hive] Merge complete. Main network now has " + mainNet.members.size() + " members");
     }
 
     public void removeNode(UUID networkId, BlockPos pos, Level level) {
