@@ -1,5 +1,6 @@
 package com.cim.block.entity;
 
+import com.cim.block.entity.energy.*;
 import com.cim.block.entity.rotation.*;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -8,10 +9,6 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 
-import com.cim.block.entity.energy.ConverterBlockEntity;
-import com.cim.block.entity.energy.MachineBatteryBlockEntity;
-import com.cim.block.entity.energy.SwitchBlockEntity;
-import com.cim.block.entity.energy.WireBlockEntity;
 import com.cim.block.entity.hive.DepthWormNestBlockEntity;
 import com.cim.block.entity.hive.HiveSoilBlockEntity;
 import com.cim.block.entity.rotation.*;
@@ -120,6 +117,14 @@ public class ModBlockEntities {
                     () -> BlockEntityType.Builder.of(ShaftBlockEntity::new,
                             ModBlocks.SHAFT_IRON.get(),
                             ModBlocks.SHAFT_WOODEN.get() // и все другие валы
+                    ).build(null));
+
+    public static final RegistryObject<BlockEntityType<ConnectorBlockEntity>> CONNECTOR_BE =
+            BLOCK_ENTITIES.register("connector", () ->
+                    BlockEntityType.Builder.of(ConnectorBlockEntity::new,
+                            ModBlocks.CONNECTOR.get(),         // Твой маленький коннектор
+                            ModBlocks.MEDIUM_CONNECTOR.get(),  // ДОБАВИТЬ ЭТО!
+                            ModBlocks.LARGE_CONNECTOR.get()    // ДОБАВИТЬ ЭТО!
                     ).build(null));
     public static void register(IEventBus eventBus) {
         BLOCK_ENTITIES.register(eventBus);

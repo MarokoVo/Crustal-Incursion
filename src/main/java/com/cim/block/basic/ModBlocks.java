@@ -1,5 +1,7 @@
 package com.cim.block.basic;
 
+import com.cim.api.energy.ConnectorTier;
+import com.cim.block.basic.energy.*;
 import com.cim.block.basic.rotation.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -15,10 +17,6 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import com.cim.block.basic.direction.FullOBlock;
-import com.cim.block.basic.energy.ConverterBlock;
-import com.cim.block.basic.energy.MachineBatteryBlock;
-import com.cim.block.basic.energy.SwitchBlock;
-import com.cim.block.basic.energy.WireBlock;
 import com.cim.block.basic.explosives.DetMinerBlock;
 import com.cim.block.basic.necrosis.NecrosisPortalBlock;
 import com.cim.block.basic.necrosis.hive.DepthWormNestBlock;
@@ -47,6 +45,21 @@ public class ModBlocks {
             () -> new WireBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).noOcclusion()));
     public static final RegistryObject<Block> SWITCH = registerBlock("switch",
             () -> new SwitchBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK)));
+
+    // Маленький (Ваш старый)
+    public static final RegistryObject<Block> CONNECTOR = registerBlock("connector",
+            () -> new ConnectorBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK),
+                    new ConnectorTier(16, 3, 0.03125f, 4, 6)));
+
+    // Средний
+    public static final RegistryObject<Block> MEDIUM_CONNECTOR = registerBlock("medium_connector",
+            () -> new ConnectorBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK),
+                    new ConnectorTier(32, 7, 0.05f, 6, 8))); // Длина 32, 4 провода, толще провод, модель 6х8
+
+    // Большой
+    public static final RegistryObject<Block> LARGE_CONNECTOR = registerBlock("large_connector",
+            () -> new ConnectorBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK),
+                    new ConnectorTier(100, 11, 0.08f, 8, 13)));
 
     //ВЗРЫВЧАТКА
     public static final RegistryObject<Block> DET_MINER = registerBlock("det_miner",
