@@ -1,10 +1,13 @@
 package com.cim.block.entity.deco;
 
+import com.cim.block.basic.ModBlocks;
 import com.cim.block.entity.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.Containers;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -12,6 +15,8 @@ import net.minecraft.world.phys.Vec3;
 
 public class BeamCollisionBlockEntity extends BlockEntity {
     private boolean isMaster = false;
+
+    public boolean isDestroyed = false;
 
     // Данные для "Мастера" (рендерера)
     private Vec3 startPos = null;
@@ -106,5 +111,40 @@ public class BeamCollisionBlockEntity extends BlockEntity {
             return new AABB(startPos, endPos).inflate(1.0);
         }
         return super.getRenderBoundingBox();
+    }
+
+    public void breakEntireBeam(net.minecraft.world.level.Level level) {
+        // Если балка уже в процессе разрушения, отменяем
+        if (this.isDestroyed || this.startPos == null || this.endPos == null) return;
+        this.isDestroyed = true;
+
+        // 1. Считаем длину и дропаем предметы
+        double distance = this.startPos.distanceTo(this.endPos);
+        int amountToDrop = (int) Math.ceil(distance);
+
+        ItemStack dropStack = new ItemStack(ModBlocks.BEAM_BLOCK.get(), amountToDrop);
+        Containers.dropItemStack(level, this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ(), dropStack);
+
+        // 2. Уничтожаем все невидимые блоки коллизии на линии
+        Vec3 direction = this.endPos.subtract(this.startPos).normalize();
+        double stepSize = 0.5;
+        int steps = (int) (distance / stepSize);
+
+        for (int i = 1; i < steps; i++) {
+            Vec3 stepVec = this.startPos.add(direction.scale(i * stepSize));
+            BlockPos posOnLine = BlockPos.containing(stepVec);
+
+            BlockEntity be = level.getBlockEntity(posOnLine);
+            if (be instanceof BeamCollisionBlockEntity slaveBE) {
+                slaveBE.isDestroyed = true; // Блокируем вызов у рабов, чтобы предметы не выпали 10 раз
+            }
+
+            if (level.getBlockState(posOnLine).is(ModBlocks.BEAM_COLLISION.get())) {
+                level.removeBlock(posOnLine, false);
+            }
+        }
+
+        // Удаляем самого мастера
+        level.removeBlock(this.getBlockPos(), false);
     }
 }

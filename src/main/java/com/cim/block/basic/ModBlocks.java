@@ -248,9 +248,9 @@ public class ModBlocks {
 
     public static final RegistryObject<Block> BEAM_COLLISION = BLOCKS.register("beam_collision",
             () -> new BeamCollisionBlock(BlockBehaviour.Properties.of()
-                    .strength(-1.0f, 3600000.0f) // Делает блок неломаемым в выживании (как бедрок)
-                    .noOcclusion()               // Обязательно для прозрачных/неполных блоков
-                    .noLootTable()));              // Предотвращает краш датагенератора лут//
+                    .strength(2.0f, 6.0f) // Изменили с -1.0f на 2.0f
+                    .noOcclusion()
+                    .noLootTable()));
 
 
     //СЕКВОЯ
