@@ -7,7 +7,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
+
 import net.minecraft.network.chat.Component;
+
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -28,6 +30,8 @@ public class HeaterHudOverlay {
         if (mc.player == null || mc.level == null) return;
 
         HitResult hit = mc.hitResult;
+
+
         if (!(hit instanceof BlockHitResult blockHit) || hit.getType() != HitResult.Type.BLOCK) return;
 
         BlockPos pos = blockHit.getBlockPos();
@@ -85,6 +89,7 @@ public class HeaterHudOverlay {
             }
 
             graphics.drawString(font, status, x, statusY, 0xFFAA00, true);
+
         }
     }
 

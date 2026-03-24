@@ -2,6 +2,12 @@ package com.cim.block.entity;
 
 import com.cim.block.entity.deco.BeamCollisionBlockEntity;
 import com.cim.block.entity.fluids.FluidBarrelBlockEntity;
+
+import com.cim.block.entity.fluids.FluidPipeBlockEntity;
+import com.cim.block.entity.rotation.*;
+
+import com.cim.multiblock.industrial.HeaterBlockEntity;
+
 import com.cim.block.entity.industrial.casting.CastingDescentBlockEntity;
 import com.cim.block.entity.industrial.casting.CastingPotBlockEntity;
 import com.cim.block.entity.industrial.energy.*;
@@ -9,6 +15,7 @@ import com.cim.block.entity.industrial.rotation.*;
 
 import com.cim.multiblock.industrial.HeaterBlockEntity;
 import com.cim.multiblock.industrial.SmelterBlockEntity;
+
 import com.cim.multiblock.system.MultiblockPartEntity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -78,8 +85,10 @@ public class ModBlockEntities {
     // 2. BlockEntity для Нагревателя
     public static final RegistryObject<BlockEntityType<HeaterBlockEntity>> HEATER_BE = BLOCK_ENTITIES.register("heater_be",
             () -> BlockEntityType.Builder.of(HeaterBlockEntity::new, ModBlocks.HEATER.get()).build(null));
+
     public static final RegistryObject<BlockEntityType<SmelterBlockEntity>> SMELTER_BE = BLOCK_ENTITIES.register("smelter_be",
             () -> BlockEntityType.Builder.of(SmelterBlockEntity::new, ModBlocks.SMELTER.get()).build(null));
+
 
     public static final RegistryObject<BlockEntityType<SwitchBlockEntity>> SWITCH_BE =
             BLOCK_ENTITIES.register("switch_be", () ->
@@ -135,6 +144,17 @@ public class ModBlockEntities {
     public static final RegistryObject<BlockEntityType<MotorElectroBlockEntity>> MOTOR_ELECTRO_BE =
             BLOCK_ENTITIES.register("motor_electro_be",
                     () -> BlockEntityType.Builder.of(MotorElectroBlockEntity::new, ModBlocks.MOTOR_ELECTRO.get()).build(null));
+
+    public static final RegistryObject<BlockEntityType<FluidPipeBlockEntity>> FLUID_PIPE_BE =
+            BLOCK_ENTITIES.register("fluid_pipe_be",
+                    () -> BlockEntityType.Builder.of(FluidPipeBlockEntity::new,
+                            // Просто перечисляем все наши трубы через запятую:
+                            ModBlocks.BRONZE_FLUID_PIPE.get(),
+                            ModBlocks.STEEL_FLUID_PIPE.get(),
+                            ModBlocks.LEAD_FLUID_PIPE.get(),
+                            ModBlocks.TUNGSTEN_FLUID_PIPE.get()
+                            // ... и любые другие трубы, которые ты добавишь в будущем
+                    ).build(null));
 
 
     public static final RegistryObject<BlockEntityType<BeamCollisionBlockEntity>> BEAM_COLLISION_BE =
